@@ -2,14 +2,17 @@
 
 **Team:** Prachee Gupta, Shini Agarwal  |  **Kaggle team:** Unsupervised
 
-**Final model:** 3-stage ResNet with 4,918,602 trainable parameters, trained with
-knowledge distillation from the average of three of our own models, SAM and CutMix.
+**Final model:** 3-stage ResNet (channels 64/128/256, blocks 3/5/3) with 4,918,602 trainable parameters,
+trained on 45,000 images (5,000 held out for validation) with knowledge distillation from the average
+of three of our own models, SAM and CutMix. Weights: last epoch (final checkpoint), not a best-validation checkpoint.
 
 | | Accuracy |
 |---|---|
-| Validation (5,000 held-out CIFAR-10 images, flip TTA) | 97.44% |
+| Validation (5,000 held-out CIFAR-10 images, flip TTA with summed logits) | 97.44% |
 | Kaggle public leaderboard | 88.8% |
-| Kaggle private leaderboard | XX.X% |
+| Kaggle private leaderboard | 85.7% |
+
+The submitted `submission.csv` came from notebook 4 (flip TTA, logits of the image and its mirror image added).
 
 ## Notebooks
 
@@ -19,7 +22,8 @@ knowledge distillation from the average of three of our own models, SAM and CutM
 | `2_runA_full_data.ipynb` | Run A on all 50,000 images | n/a | 88.3% |
 | `3_runC_sam_cutmix.ipynb` | Run C: SAM + CutMix, plus test-set analysis | 97.22% | 88.0% |
 | `4_final_distillation.ipynb` | **Final model (Run E)**, distilled from A, B and C | **97.44%** | **88.8%** |
-| `5_tta_experiment.ipynb` | Test-time augmentation experiment on the final model | | 88.8% |
+| `5_tta_experiment.ipynb` | Test-time augmentation experiment on the final model (probabilities averaged; flip alone gives 97.46%) | | 88.8% |
+| `6_inference_only.ipynb` | Makes `submission.csv` from the final weights, no teachers or training | | |
 
 Notebook 1 produced three runs by changing only these settings (outputs saved are from Run B):
 
@@ -29,17 +33,25 @@ Notebook 1 produced three runs by changing only these settings (outputs saved ar
 | A | 200 | `A_e200` | `cutout(random_flip(random_crop(x)))` |
 | B | 200 | `B_strongaug_e200` | `cutout(random_flip(color_jitter(random_zoom(x))))` |
 
-## How to reproduce
+## How to reproduce the final model
 
-1. Download the competition data from Kaggle and put `data.zip` in your Google Drive (My Drive).
-2. Open a notebook in Google Colab and choose an A100 GPU (Runtime > Change runtime type).
-3. Run all cells. Each notebook prints the parameter count and final validation accuracy,
-   saves weights to `MyDrive/dl_project1`, and writes `submission.csv`.
-4. Run notebook 1 (Runs A and B) and notebook 3 (Run C) before notebook 4,
-   because the final model uses their weights as teachers.
+Put the Kaggle `data.zip` in your Google Drive (My Drive), open each notebook in Google Colab with an A100 GPU, and run all cells, in this order:
 
-Training times on an A100: Runs A and B about 15 minutes each, Run C about 50 minutes,
-final model about 1 hour.
+1. Notebook 1 with the **Run A** settings above (saves `A_e200_final_weights.pt`).
+2. Notebook 1 again with the **Run B** settings above (saves `B_strongaug_e200_final_weights.pt`).
+3. Notebook 3 as it is (Run C, saves `C_sam_cutmix_e300_val_final_weights.pt`).
+4. Notebook 4 as it is (final model, saves `E_kd_ensemble_val_final_weights.pt` and writes `submission.csv`).
+
+Running each notebook once with its current defaults does not recreate all three teachers.
+Weights and checkpoints are saved to `MyDrive/dl_project1`. Training supports resuming from checkpoints,
+but random-number states are not saved, so a resumed run is not bit-for-bit identical.
+
+Training times on an A100: Runs A and B about 15 minutes each, Run C about 50 minutes, final model about 1 hour.
+
+## Inference only
+
+Put `E_kd_ensemble_val_final_weights.pt` in `MyDrive/dl_project1` and run `6_inference_only.ipynb`.
+It loads the final student, applies flip TTA (summed logits) and downloads `submission.csv`.
 
 No pretrained weights or external data are used. The evaluation images are never used for training.
 
