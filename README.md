@@ -51,7 +51,7 @@ Training times on an A100: Runs A and B about 15 minutes each, Run C about 50 mi
 ## Inference only
 
 Put `E_kd_ensemble_val_final_weights.pt` in `MyDrive/dl_project1` and run `6_inference_only.ipynb`.
-It loads the final student, applies flip TTA (summed logits) and downloads `submission.csv`.
+It loads the final student, applies flip TTA (summed logits) and downloads `submission.csv`.Run on a T4 GPU, it reproduces the submitted predictions for 1,999 of the 2,000 test images (the original run used an A100).
 
 No pretrained weights or external data are used. The evaluation images are never used for training.
 
